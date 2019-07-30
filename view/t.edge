@@ -1,0 +1,58 @@
+<head>
+	<script src="/public/jquery-3.4.1.min.js"></script>
+  <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 300;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+	<script>
+
+	$(document).ready(function() {
+
+$( "#getComps" ).click(function() {
+
+	let payload = {  "placeId":$("#placeId").val()}
+
+	console.log( payload)
+
+	fetch('/getComps', {
+		method: 'post',
+		headers: {
+		'Accept': 'application/json',
+		'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(payload)
+			}).then(function(res) {
+				return res.text();
+			}).then(function(html) {
+				$( '#comps').html( html )
+			});
+
+});
+
+});
+	</script>
+</head>
+<body>
+
+ 
+  	
+
+
+Property To Compify = <input type="text" name="placeId" id="placeId" value="38735465-F1F7-4D6D-AE1E-0001F8CAEF49"> 
+<br>
+<input type="button" value="get comps" id="getComps">
+<hr>
+<div id="comps">
+comps go here
+</div>	
+
+</body>

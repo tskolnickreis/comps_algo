@@ -1,0 +1,22 @@
+<table border="1">
+<tr>
+	<th>id</th>
+	<th>distance</th>
+	<th>year_built</th>
+	<th>sale_date</th>
+</tr>
+
+
+		@each( r in data)
+<tr>
+<td> {{r['id']}}</td>
+<td> {{r['dist']}}</td>
+<td> {{r['year_built']}}</td>
+<td> {{r['sale_date']}}</td>
+
+</tr>
+		@endeach
+
+</table>
+
+
