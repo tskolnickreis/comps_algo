@@ -19,7 +19,15 @@
 
 $( "#getComps" ).click(function() {
 
-	let payload = {  "placeId":$("#placeId").val()}
+	let payload = {  
+		"placeId":$("#placeId").val(),
+		"radius":$("#radius").val(),
+		"distCoef" : $("#distCoef").val(),
+		"salePriceCoef" : $("#salePriceCoef").val(),
+		"yearBuiltCoef" : $("#yearBuiltCoef").val(),
+		"sizeCoef" : $("#sizeCoef").val(),
+		"rentCoef" : $("#rentCoef").val(),
+}
 
 	console.log( payload)
 
@@ -48,6 +56,14 @@ $( "#getComps" ).click(function() {
 
 
 Property To Compify = <input type="text" name="placeId" id="placeId" value="38735465-F1F7-4D6D-AE1E-0001F8CAEF49"> 
+radius = <input type="text" id="radius" name="radius" value="5" size="2">
+<hr>
+sale price weight = <input type="text" id="salePriceCoef" name="salePriceCoef" value="2" size="2">
+rent weight = <input type="text" id="rentCoef" name="rentCoef" value="2" size="2">
+distance weight = <input type="text" id="distCoef" name="distCoef" value="1" size="2">
+year built weight = <input type="text" id="yearBuiltCoef" name="yearBuiltCoef" value="1" size="2">
+size weight = <input type="text" id="sizeCoef" name="sizeCoef" value="1" size="2">
+
 <br>
 <input type="button" value="get comps" id="getComps">
 <hr>

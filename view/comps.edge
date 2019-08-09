@@ -1,18 +1,27 @@
 <table border="1">
 <tr>
 	<th>id</th>
+	<th>address</th>	
 	<th>distance</th>
 	<th>year_built</th>
 	<th>sale_date</th>
+	<th>size</th>
+	<th>sale_price</th>
+	<th>rent_per_unit</th>
 </tr>
 
 
 		@each( r in data)
 <tr>
 <td> {{r['id']}}</td>
+<td> {{r['street_address']}}</td>
 <td> {{r['dist']}}</td>
 <td> {{r['year_built']}}</td>
 <td> {{r['sale_date']}}</td>
+<td> {{r['size_unit']}}</td>
+<td> {{r['sale_price']}}</td>
+<td> {{r['rent_per_unit']}}</td>
+
 
 </tr>
 		@endeach
