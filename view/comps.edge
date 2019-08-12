@@ -8,19 +8,21 @@
 	<th>size</th>
 	<th>sale_price</th>
 	<th>rent_per_unit</th>
+	<th>spiritual<br>distance</th>
 </tr>
 
 
 		@each( r in data)
 <tr>
-<td> {{r['id']}}</td>
-<td> {{r['street_address']}}</td>
+<td> {{r['placeId']}}</td>
+<td> {{r['streetAddress']}}</td>
 <td> {{r['dist']}}</td>
-<td> {{r['year_built']}}</td>
-<td> {{r['sale_date']}}</td>
-<td> {{r['size_unit']}}</td>
-<td> {{r['sale_price']}}</td>
-<td> {{r['rent_per_unit']}}</td>
+<td> {{r['yearBuilt']}}</td>
+<td> {{r['saleDate']}}</td>
+<td> {{r['sizeUnit']}}</td>
+<td> {{r['salePrice']}}</td>
+<td> {{r['rentPerUnit']}}</td>
+<td>{{r['score']}}</td>
 
 
 </tr>

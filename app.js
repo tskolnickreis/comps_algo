@@ -55,140 +55,177 @@ app.post('/getComps', (req, res) => {
 
 	let sql = `
 
-	select
-	null as id,
-	"streetAddress" as street_address,
-	null dist_norm,
-	null year_buit_dist_norm,
-	null sale_price_per_unit_dist_norm,
-	null sale_date_dist_norm,
-	null size_unit_dist_norm,
-	null size_sqft_dist_norm,
-	null rent_per_unit_dist_norm,
-
-	null sale_price_per_unit_dist_norm,
-	"salePrice" as sale_price,
-
-	TO_CHAR("saleDate", 'mm/dd/yyyy') as sale_date,
-	"yearBuilt" as year_built,
-	0 as dist,
-	"sizeUnit" as size_unit,
-	"salePricePerUnit" as sale_price_per_unit,
-	"rentPerUnit" as rent_per_unit,
-	100 as score
-
-	from
-	place
-	where
-	"placeId" = '${placeId}'
-
-	union all
 	
-		select
-	t1.*,
 	
+select
+p4.*,
+round(
+	(100* (
+	coalesce("distNorm",0) *  ${distCoef} +
+	coalesce("yearBuiltNormDist",0) *  ${yearBuiltCoef} +
+	coalesce("sizeUnitNormDist",0) * ${sizeCoef} +
+	coalesce("rentPerUnitNormDist",0) * ${rentCoef} +
+	coalesce("salePriceNormDist",0) *
+	coalesce("saleDateJulianNormDist",0) * ${saleCoef}
+	)/
 	(
-		coalesce(dist_norm,0 ) * ${distCoef} + 
-		coalesce(year_built_dist_norm,0)  * ${yearBuiltCoef}   + 
-		coalesce(sale_price_dist_norm ,0 ) * coalesce(sale_date_dist_norm,0)  *  ${salePriceCoef} +
-		coalesce(size_unit_dist_norm,0) * ${sizeCoef} +
-		coalesce(size_sqft_dist_norm,0) * ${sizeCoef} +
-		coalesce(rent_per_unit_dist_norm,0) * ${rentCoef} 
-	) / ( 
-		coalesce(dist_norm - dist_norm + ${distCoef}, 0 )  + 
-		coalesce( year_built_dist_norm - year_built_dist_norm + ${yearBuiltCoef},0 )  + 
-		coalesce(sale_price_dist_norm  - sale_price_dist_norm + ${salePriceCoef},0 )  * coalesce(sale_date_dist_norm,0)  +
-		coalesce( size_unit_dist_norm - size_unit_dist_norm + ${sizeCoef},0 ) +
-		coalesce( size_sqft_dist_norm - size_sqft_dist_norm + ${sizeCoef},0 ) +
-		coalesce( rent_per_unit_dist_norm - rent_per_unit_dist_norm + ${rentCoef},0 )
-		) as score
+	coalesce("distNorm" - "distNorm" + ${distCoef}, 0 ) +
+	coalesce("yearBuiltNormDist" - "yearBuiltNormDist" + ${yearBuiltCoef}, 0 ) +
+	coalesce("sizeUnitNormDist" - "sizeUnitNormDist" + ${sizeCoef}, 0 ) +
+	coalesce("rentPerUnitNormDist" - "rentPerUnitNormDist" + ${rentCoef}, 0 ) +
+	coalesce("salePriceNormDist" - "salePriceNormDist" + ${saleCoef}, 0 )
+	) )::numeric , 3 ) as score
+from
+(
+
+select
+	p3.*,
+abs("yearBuiltSubjNorm" -  "yearBuiltNorm") as "yearBuiltNormDist",
+abs("salePricePerUnitSubjNorm" -  "salePricePerUnitNorm") as "salePricePerUnitNormDist",
+abs("saleDateJulianSubjNorm" -  "saleDateJulianNorm") as "saleDateJulianNormDist",
+abs("sizeUnitSubjNorm" -  "sizeUnitNorm") as "sizeUnitNormDist",
+abs("rentPerUnitSubjNorm" -  "rentPerUnitNorm") as "rentPerUnitNormDist",
+abs("salePriceSubjNorm" -  "salePriceNorm") as "salePriceNormDist"
+
+from
+(
+
+
+select
+p2.*,
+
+("dist" + 0.0 - "distMin") / ( "distMax" - "distMin" ) "distNorm",
+
+("yearBuilt" + 0.0 - "yearBuiltMin") / ( "yearBuiltMax" - "yearBuiltMin" ) "yearBuiltNorm",
+("salePricePerUnit" + 0.0 - "salePricePerUnitMin") / ( "salePricePerUnitMax" - "salePricePerUnitMin" ) "salePricePerUnitNorm",
+("saleDateJulian" + 0.0 - "saleDateJulianMin") / ( "saleDateJulianMax" - "saleDateJulianMin" ) "saleDateJulianNorm",
+("sizeUnit" + 0.0 - "sizeUnitMin") / ( "sizeUnitMax" - "sizeUnitMin" ) "sizeUnitNorm",
+("rentPerUnit" + 0.0 - "rentPerUnitMin") / ( "rentPerUnitMax" - "rentPerUnitMin" ) "rentPerUnitNorm",
+("salePrice" + 0.0 - "salePriceMin") / ( "salePriceMax" - "salePriceMin" ) "salePriceNorm",
+
+("yearBuiltSubj" + 0.0 - "yearBuiltMin") / ( "yearBuiltMax" - "yearBuiltMin" ) "yearBuiltSubjNorm",
+("salePricePerUnitSubj" + 0.0 - "salePricePerUnitMin") / ( "salePricePerUnitMax" - "salePricePerUnitMin" ) "salePricePerUnitSubjNorm",
+("saleDateJulianSubj" + 0.0 - "saleDateJulianMin") / ( "saleDateJulianMax" - "saleDateJulianMin" ) "saleDateJulianSubjNorm",
+("sizeUnitSubj" + 0.0 - "sizeUnitMin") / ( "sizeUnitMax" - "sizeUnitMin" ) "sizeUnitSubjNorm",
+("rentPerUnitSubj" + 0.0 - "rentPerUnitMin") / ( "rentPerUnitMax" - "rentPerUnitMin" ) "rentPerUnitSubjNorm",
+("salePriceSubj" + 0.0 - "salePriceMin") / ( "salePriceMax" - "salePriceMin" ) "salePriceSubjNorm"
+from
+(
+
+
+
+select
+		p1."placeId",
+		p1."streetAddress",
+		TO_CHAR(p1."saleDate", 'mm/dd/yyyy') as "saleDate",
+
+		round(p1."dist" ::numeric,3) as dist,
+		min(p1."dist" ) over () as "distMin",
+		max(p1."dist" ) over () as "distMax",
+
+
+                p1."yearBuilt",
+                min(p1."yearBuilt" ) over () as "yearBuiltMin",
+                max(p1."yearBuilt" ) over () as "yearBuiltMax",
+
+                p1."salePricePerUnit",
+                min(p1."salePricePerUnit" ) over () as "salePricePerUnitMin",
+                max(p1."salePricePerUnit" ) over () as "salePricePerUnitMax",
+
+                p1."saleDateJulian",
+                min(p1."saleDateJulian" ) over () as "saleDateJulianMin",
+                max(p1."saleDateJulian" ) over () as "saleDateJulianMax",
+
+                p1."sizeUnit",
+                min(p1."sizeUnit" ) over () as "sizeUnitMin",
+                max(p1."sizeUnit" ) over () as "sizeUnitMax",
+
+                p1."rentPerUnit",
+                min(p1."rentPerUnit" ) over () as "rentPerUnitMin",
+                max(p1."rentPerUnit" ) over () as "rentPerUnitMax",
+
+                p1."salePrice",
+                min(p1."salePrice" ) over () as "salePriceMin",
+                max(p1."salePrice" ) over () as "salePriceMax",
+	
+				"yearBuiltSubj",
+				"salePricePerUnitSubj",
+				"saleDateJulianSubj",
+				"sizeUnitSubj",
+				"rentPerUnitSubj",
+				"salePriceSubj"
+	
+	
+
+
+
+
+from
+(
+
+        select
+			p."placeId",
+			ST_Distance( subj.point::geography , p.point::geography  ) * 0.000621371 dist,
+			p."streetAddress",
+			p."salePricePerUnit" ,
+			p."salePrice",
+			case when so."isArmsLengthTransaction" then
+				1
+			else
+				null
+			end "isArmsLengthTransaction",
+			p."yearBuilt",			
+			p."sizeUnit",
+			p."rentPerUnit",
+			p."saleDate",
+			p."saleDateJulian",
+			subj."yearBuilt" as "yearBuiltSubj",
+			subj."salePricePerUnit" as "salePricePerUnitSubj",
+			subj."saleDateJulian" as "saleDateJulianSubj",
+			subj."sizeUnit" as "sizeUnitSubj",
+			subj."rentPerUnit" as "rentPerUnitSubj",
+			subj."salePrice" as "salePriceSubj"
+
 	from
-	(
-	
-	select
-		t0.id,
-		street_address,
-		1 - (dist - dist_min) / ( dist_max - dist_min ) dist_norm ,
-		1 -  ((year_built_dist + 0.0) - year_built_dist_min) / ( year_built_dist_max - year_built_dist_min ) year_built_dist_norm ,
-		1 - ( sale_price_per_unit_dist  - sale_price_per_unit_dist_min ) / ( sale_price_per_unit_dist_max - sale_price_per_unit_dist_min ) sale_price_per_unit_dist_norm ,
-		1 - ( (sale_date_dist + 0.0)  - sale_date_dist_min ) / ( sale_date_dist_max - sale_date_dist_min ) sale_date_dist_norm ,
-		1 - ( (size_unit_dist + 0.0)  - size_unit_dist_min ) / ( size_unit_dist_max - size_unit_dist_min ) size_unit_dist_norm ,   
-		1 - ( (size_sqft_dist + 0.0)  - size_sqft_dist_min ) / ( size_sqft_dist_max - size_sqft_dist_min ) size_sqft_dist_norm ,
-		1 - ( (rent_per_unit_dist + 0.0)  - rent_per_unit_dist_min ) / ( rent_per_unit_dist_max - rent_per_unit_dist_min ) rent_per_unit_dist_norm ,		
+        place p
+		left join "saleObservation" so on
+			so."saleObservationId" = p."saleObservationId"
+        cross join (
+                select
+					pInner.point,
+					pInner."sectorId",
+					pInner."yearBuilt",
+					pInner."salePricePerUnit",
+					pInner."saleDateJulian",
+					pInner."sizeUnit",
+					pInner."rentPerUnit",
+					pInner."salePrice",
+					case when soInner."isArmsLengthTransaction" then
+						1
+					else
+						null
+					end "isArmsLengthTransaction"
 
-		1 - ( sale_price_dist  - sale_price_dist_min ) / ( sale_price_dist_max - sale_price_dist_min ) sale_price_dist_norm ,
-		sale_price,
+                from
+                        place pInner
+				left join "saleObservation" soInner on
+					soInner."saleObservationId" = pInner."saleObservationId"
+                where
+                "placeId" = '38735465-F1F7-4D6D-AE1E-0001F8CAEF49'
+                        ) subj
+        where
+                ST_DWithin(p.point::geography,ST_SetSRID(ST_MakePoint(ST_X(subj.point),ST_Y(subj.point)),4326)::geography,${radius} * 1609.34)
+        and p."sectorId" = subj."sectorId"
+        and p."placeId" != '38735465-F1F7-4D6D-AE1E-0001F8CAEF49'
+        and ( p."performanceObservationId" is not null or (p."saleObservationId" is not null and p."salePrice" is not null))
 
-		
-		TO_CHAR(sale_date, 'mm/dd/yyyy') sale_date,
-		year_built,
-		dist,
-		size_unit,
-		sale_price_per_unit,
-		rent_per_unit
+	) p1
 	
-	
-	from
-		(
-	select 
-	p."placeId" id,
-	p."streetAddress" as street_address,
-	ST_Distance( subj.point::geometry, p.point::geometry ) dist,
-	min( ST_Distance( subj.point, p.point ) ) over (  ) dist_min,
-	max( ST_Distance(  subj.point, p.point ) ) over ( ) dist_max,
-	p."yearBuilt" as year_built,
-	abs(subj."yearBuilt" - p."yearBuilt") as year_built_dist,
-	min( abs(subj."yearBuilt" - p."yearBuilt") ) over () as year_built_dist_min,
-	max( abs(subj."yearBuilt" - p."yearBuilt") ) over () as year_built_dist_max,
-	abs(subj."salePricePerUnit" - p."salePricePerUnit")  as sale_price_per_unit_dist,
-	min( abs(subj."salePricePerUnit" - p."salePricePerUnit") ) over() as sale_price_per_unit_dist_min,
-	max( abs(subj."salePricePerUnit" - p."salePricePerUnit") ) over() as sale_price_per_unit_dist_max,
-	abs( subj."saleDateJulian" - p."saleDateJulian" ) as sale_date_dist,
-	min( abs(subj."saleDateJulian" - p."saleDateJulian") ) over() as sale_date_dist_min,
-	max( abs(subj."saleDateJulian" - p."saleDateJulian") ) over( ) as sale_date_dist_max,
-	abs( subj."sizeUnit" - p."sizeUnit" ) as size_unit_dist,
-	min( abs(subj."sizeUnit" - p."sizeUnit") ) over() as size_unit_dist_min,
-	max( abs(subj."sizeUnit" - p."sizeUnit") ) over( ) as size_unit_dist_max,
-	abs( subj."sizeSqft" - p."sizeSqft" ) as size_Sqft_dist,
-	min( abs(subj."sizeSqft" - p."sizeSqft") ) over() as size_sqft_dist_min,
-	max( abs(subj."sizeSqft" - p."sizeSqft") ) over( ) as size_sqft_dist_max,
-
-	abs( subj."rentPerUnit" - p."rentPerUnit" ) as rent_per_unit_dist,
-	min( abs(subj."rentPerUnit" - p."rentPerUnit") ) over() as rent_per_unit_dist_min,
-	max( abs(subj."rentPerUnit" - p."rentPerUnit") ) over( ) as rent_per_unit_dist_max,			
-
-
-	abs(subj."salePrice" - p."salePrice")  as sale_price_dist,
-	min( abs(subj."salePrice" - p."salePrice") ) over() as sale_price_dist_min,
-	max( abs(subj."salePrice" - p."salePrice") ) over() as sale_price_dist_max,
-	p."salePrice" as sale_price,
-
-	subj."saleDate" as subj_sale_date,
-	p."saleDate" as sale_date,
-	p."sizeUnit" as size_unit,
-	p."salePricePerUnit" as sale_price_per_unit,
-	p."rentPerUnit" as rent_per_unit
-	from
-	place p
-	cross join ( 
-		select 
-			*
-		from
-			place 
-		where 
-		"placeId" = '${placeId}'
-			) subj
-	where
-		ST_DWithin(p.point::geography,ST_SetSRID(ST_MakePoint(ST_X(subj.point),ST_Y(subj.point)),4326)::geography,${radius} * 1609.34)
-	and p."sectorId" = subj."sectorId"
-	and p."placeId" != '${placeId}'
-	and ( p."performanceObservationId" is not null or (p."saleObservationId" is not null and p."salePrice" is not null))
-	) t0
-	
-	
-	) t1
-	
-	order by score desc
+) p2
+	order by "salePricePerUnit"
+) p3
+) p4
+order by score asc
 	limit 100
 	
 	
