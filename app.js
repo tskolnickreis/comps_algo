@@ -55,37 +55,67 @@ app.post('/getComps', (req, res) => {
 
 	let sql = `
 
+select
+	"placeId",
+	"streetAddress",
+	0 "dist",
+	"yearBuilt",
+	TO_CHAR("saleDate", 'mm/dd/yyyy') as "saleDate",
+	"sizeUnit",
+	"salePrice",
+	"rentPerUnit",
+	null score
+from
+place
+where
+"placeId" = '${placeId}'
+
+union all
 	
 	
 select
-p4.*,
+p4."placeId",
+p4."streetAddress",
+p4."dist",
+p4."yearBuilt",
+p4."saleDate",
+p4."sizeUnit",
+p4."salePrice",
+p4."rentPerUnit",
+
 round(
 	(100* (
+		-.000001 +
 	coalesce("distNorm",0) *  ${distCoef} +
 	coalesce("yearBuiltNormDist",0) *  ${yearBuiltCoef} +
 	coalesce("sizeUnitNormDist",0) * ${sizeCoef} +
 	coalesce("rentPerUnitNormDist",0) * ${rentCoef} +
-	coalesce("salePriceNormDist",0) *
-	coalesce("saleDateJulianNormDist",0) * ${saleCoef}
+	coalesce("salePriceNormDist",0) *   coalesce("saleDateJulianNormDist",0) * ${salePriceCoef}
+
 	)/
 	(
+		.000001 +
 	coalesce("distNorm" - "distNorm" + ${distCoef}, 0 ) +
 	coalesce("yearBuiltNormDist" - "yearBuiltNormDist" + ${yearBuiltCoef}, 0 ) +
 	coalesce("sizeUnitNormDist" - "sizeUnitNormDist" + ${sizeCoef}, 0 ) +
 	coalesce("rentPerUnitNormDist" - "rentPerUnitNormDist" + ${rentCoef}, 0 ) +
-	coalesce("salePriceNormDist" - "salePriceNormDist" + ${saleCoef}, 0 )
+	coalesce("salePriceNormDist" - "salePriceNormDist" + ${salePriceCoef}, 0 )	
+		
 	) )::numeric , 3 ) as score
+
 from
 (
 
 select
 	p3.*,
-abs("yearBuiltSubjNorm" -  "yearBuiltNorm") as "yearBuiltNormDist",
-abs("salePricePerUnitSubjNorm" -  "salePricePerUnitNorm") as "salePricePerUnitNormDist",
-abs("saleDateJulianSubjNorm" -  "saleDateJulianNorm") as "saleDateJulianNormDist",
-abs("sizeUnitSubjNorm" -  "sizeUnitNorm") as "sizeUnitNormDist",
-abs("rentPerUnitSubjNorm" -  "rentPerUnitNorm") as "rentPerUnitNormDist",
-abs("salePriceSubjNorm" -  "salePriceNorm") as "salePriceNormDist"
+	1 - abs("yearBuiltSubjNorm" -  "yearBuiltNorm") as "yearBuiltNormDist",
+	1 - abs("salePricePerUnitSubjNorm" -  "salePricePerUnitNorm") as "salePricePerUnitNormDist",
+	1 - abs("saleDateJulianSubjNorm" -  "saleDateJulianNorm") as "saleDateJulianNormDist",
+	1 - abs("sizeUnitSubjNorm" -  "sizeUnitNorm") as "sizeUnitNormDist",
+	1 - abs("rentPerUnitSubjNorm" -  "rentPerUnitNorm") as "rentPerUnitNormDist",
+	1 - abs("salePriceSubjNorm" -  "salePriceNorm") as "salePriceNormDist",
+	1 - "distRawNorm" as "distNorm"
+	
 
 from
 (
@@ -94,7 +124,7 @@ from
 select
 p2.*,
 
-("dist" + 0.0 - "distMin") / ( "distMax" - "distMin" ) "distNorm",
+("dist" + 0.0 - "distMin") / ( "distMax" - "distMin" ) "distRawNorm",
 
 ("yearBuilt" + 0.0 - "yearBuiltMin") / ( "yearBuiltMax" - "yearBuiltMin" ) "yearBuiltNorm",
 ("salePricePerUnit" + 0.0 - "salePricePerUnitMin") / ( "salePricePerUnitMax" - "salePricePerUnitMin" ) "salePricePerUnitNorm",
@@ -168,7 +198,11 @@ from
 			ST_Distance( subj.point::geography , p.point::geography  ) * 0.000621371 dist,
 			p."streetAddress",
 			p."salePricePerUnit" ,
-			p."salePrice",
+			case when so."isArmsLengthTransaction" then
+				p."salePrice"
+			else
+				null
+			end "salePrice",
 			case when so."isArmsLengthTransaction" then
 				1
 			else
@@ -211,12 +245,12 @@ from
 				left join "saleObservation" soInner on
 					soInner."saleObservationId" = pInner."saleObservationId"
                 where
-                "placeId" = '38735465-F1F7-4D6D-AE1E-0001F8CAEF49'
+                "placeId" = '${placeId}'
                         ) subj
         where
                 ST_DWithin(p.point::geography,ST_SetSRID(ST_MakePoint(ST_X(subj.point),ST_Y(subj.point)),4326)::geography,${radius} * 1609.34)
         and p."sectorId" = subj."sectorId"
-        and p."placeId" != '38735465-F1F7-4D6D-AE1E-0001F8CAEF49'
+        and p."placeId" != '${placeId}'
         and ( p."performanceObservationId" is not null or (p."saleObservationId" is not null and p."salePrice" is not null))
 
 	) p1
@@ -225,8 +259,8 @@ from
 	order by "salePricePerUnit"
 ) p3
 ) p4
-order by score asc
-	limit 100
+order by score desc
+	limit 1000
 	
 	
 
