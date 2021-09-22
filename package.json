@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "edge.js": "^1.1.4",
+    "edge.js": "^5.3.2",
     "express": "^4.17.1",
     "pg": "^7.11.0"
   }
